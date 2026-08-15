@@ -14,6 +14,8 @@ def calculate_position_size(symbol: str, entry_price: float, sl_price: float) ->
     symbol_info = mt5.symbol_info(symbol)
     if account is None or symbol_info is None:
         return None
+    if symbol_info.volume_step <= 0 or symbol_info.volume_min <= 0 or symbol_info.volume_max < symbol_info.volume_min:
+        return None
 
     risk_amount = account.balance * (cfg.RISK_PERCENT_PER_TRADE / 100)
     sl_distance = abs(entry_price - sl_price)
@@ -32,7 +34,11 @@ def calculate_position_size(symbol: str, entry_price: float, sl_price: float) ->
     lot = max(symbol_info.volume_min, (raw_lot // step) * step)
     lot = min(lot, symbol_info.volume_max)
 
-    return round(lot, 2) if lot >= symbol_info.volume_min else None
+    # Jangan pakai fixed 2 desimal: beberapa broker mengizinkan volume step 0.001.
+    from decimal import Decimal
+    precision = max(0, -Decimal(str(step)).normalize().as_tuple().exponent)
+    lot = round(lot, precision)
+    return lot if lot >= symbol_info.volume_min else None
 
 
 def calculate_sl_tp(order_type: str, entry_price: float, atr_value: float) -> Tuple[float, float]:
@@ -56,5 +62,6 @@ def daily_loss_limit_hit(day_start_balance: float) -> bool:
 def open_positions_count(symbols: List[str]) -> int:
     positions = mt5.positions_get()
     if positions is None:
-        return 0
+        # Fail-safe: kalau status posisi tidak bisa dibaca, jangan izinkan entry baru.
+        return cfg.MAX_OPEN_POSITIONS
     return sum(1 for p in positions if p.symbol in symbols and p.magic == cfg.MAGIC_NUMBER)

@@ -31,7 +31,8 @@ def log_trade(symbol, signal, lot, price, sl, tp, retcode, comment):
 def already_has_position(symbol: str) -> bool:
     positions = mt5.positions_get(symbol=symbol)
     if positions is None:
-        return False
+        print(f"[{symbol}] Gagal membaca posisi terbuka; fail-safe: tidak membuka posisi baru.")
+        return True
     return any(p.magic == cfg.MAGIC_NUMBER for p in positions)
 
 
@@ -109,6 +110,9 @@ def process_symbol(symbol: str, verbose: bool):
         return
 
     tick = mt5.symbol_info_tick(symbol)
+    if tick is None:
+        print(f"[{symbol}] Tidak bisa membaca tick harga, order dibatalkan: {mt5.last_error()}")
+        return
     entry_price = tick.ask if signal == "BUY" else tick.bid
     sl, tp = risk.calculate_sl_tp(signal, entry_price, last_closed["atr"])
 
