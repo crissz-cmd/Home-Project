@@ -1,24 +1,69 @@
 name: Build Scap Holders Windows Product
+
 on:
   workflow_dispatch:
   push:
     tags:
       - "scap-v*"
+
+permissions:
+  contents: read
+
 jobs:
   build:
+    name: Build Windows EXE
     runs-on: windows-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          architecture: x64
+          cache: pip
+          cache-dependency-path: Scap Holders/requirements.txt
+
+      - name: Validate signing-key secret
+        shell: pwsh
+        env:
+          SCAP_PUBLIC_KEY_B64: ${{ secrets.SCAP_PUBLIC_KEY_B64 }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:SCAP_PUBLIC_KEY_B64)) {
+            Write-Error "Missing repository secret SCAP_PUBLIC_KEY_B64. Add it under Settings > Secrets and variables > Actions before building."
+          }
+          $bytes = [Convert]::FromBase64String($env:SCAP_PUBLIC_KEY_B64)
+          if ($bytes.Length -ne 32) {
+            Write-Error "SCAP_PUBLIC_KEY_B64 is not a valid 32-byte Ed25519 public key."
+          }
+          Write-Host "Signing public key secret is present and valid."
+
       - name: Build executable
         working-directory: Scap Holders
         env:
           SCAP_PUBLIC_KEY_B64: ${{ secrets.SCAP_PUBLIC_KEY_B64 }}
-        run: .\build_product.bat
+        shell: cmd
+        run: build_product.bat
+
+      - name: Verify executable output
+        shell: pwsh
+        run: |
+          $exe = "Scap Holders/dist/ScapHolders/ScapHolders.exe"
+          if (-not (Test-Path $exe)) {
+            Write-Error "Build finished without producing $exe"
+          }
+          $size = (Get-Item $exe).Length
+          if ($size -lt 100000) {
+            Write-Error "Executable looks unexpectedly small ($size bytes)."
+          }
+          Write-Host "EXE ready: $exe ($size bytes)"
+
       - name: Upload product artifact
         uses: actions/upload-artifact@v4
         with:
           name: ScapHolders-Windows
           path: Scap Holders/dist/ScapHolders
+          if-no-files-found: error
+          retention-days: 7
