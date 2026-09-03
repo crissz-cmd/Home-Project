@@ -13,9 +13,9 @@ if errorlevel 1 exit /b 1
 >> license_public_key.py echo PUBLIC_KEY_B64 = "%SCAP_PUBLIC_KEY_B64%"
 python -m PyInstaller --clean --noconfirm ScapHolders.spec
 if errorlevel 1 exit /b 1
-if not exist "dist\ScapHolders\ScapHolders.exe" (
-  echo ERROR: PyInstaller did not produce dist\ScapHolders\ScapHolders.exe
+if not exist "dist\ScapHolders.exe" (
+  echo ERROR: PyInstaller did not produce dist\ScapHolders.exe
   exit /b 1
 )
-echo BUILD COMPLETE: dist\ScapHolders\ScapHolders.exe
+echo BUILD COMPLETE: dist\ScapHolders.exe
 endlocal

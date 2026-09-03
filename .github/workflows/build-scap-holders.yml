@@ -50,7 +50,7 @@ jobs:
       - name: Verify executable output
         shell: pwsh
         run: |
-          $exe = "Scap Holders/dist/ScapHolders/ScapHolders.exe"
+          $exe = "Scap Holders/dist/ScapHolders.exe"
           if (-not (Test-Path $exe)) {
             Write-Error "Build finished without producing $exe"
           }
@@ -64,6 +64,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ScapHolders-Windows
-          path: Scap Holders/dist/ScapHolders
+          path: Scap Holders/dist/ScapHolders.exe
           if-no-files-found: error
           retention-days: 7
