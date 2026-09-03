@@ -64,7 +64,7 @@ class App(tk.Tk):
         s=self.save()
         if not s: return
         if not s["dry_run"] and not messagebox.askyesno(PRODUCT,"LIVE mode sends real orders to MT5. Continue?"): return
-        os.environ.update({"MT5_TERMINAL_PATH":s["mt5_terminal_path"],"SCAP_SYMBOLS":s["symbol"],"SCAP_RISK_PERCENT":str(s["risk_percent"]),"SCAP_TARGET_PROFIT_USD":str(s["target_profit_usd"]),"SCAP_MAX_OPEN_POSITIONS":str(s["max_open_positions"]),"SCAP_MAX_DAILY_LOSS_PERCENT":str(s["max_daily_loss_percent"]),"SCAP_MAX_SPREAD_POINTS":str(s["max_spread_points"]),"SCAP_DRY_RUN":"1" if s["dry_run"] else "0","SCAP_REQUIRE_LIVE_CONFIRMATION":"0","SCAP_PRODUCT_MODE":"1"})
+        os.environ.update({"MT5_TERMINAL_PATH":s["mt5_terminal_path"],"SCAP_SYMBOLS":s["symbol"],"SCAP_RISK_PERCENT":str(s["risk_percent"]),"SCAP_TARGET_PROFIT_USD":str(s["target_profit_usd"]),"SCAP_MAX_OPEN_POSITIONS":str(s["max_open_positions"]),"SCAP_MAX_DAILY_LOSS_PERCENT":str(s["max_daily_loss_percent"]),"SCAP_MAX_SPREAD_POINTS":str(s["max_spread_points"]),"SCAP_DRY_RUN":"1" if s["dry_run"] else "0","SCAP_LOG_FILE":str(log_path()),"SCAP_REQUIRE_LIVE_CONFIRMATION":"0","SCAP_PRODUCT_MODE":"1"})
         if self.bot_thread and self.bot_thread.is_alive(): return
         self.log_offset=0; log_path().write_text("",encoding="utf-8"); self.start_btn.config(state="disabled"); self._write("Starting trading engine…"); self.bot_thread=threading.Thread(target=self._run_bot,daemon=True); self.bot_thread.start()
     def _run_bot(self):
