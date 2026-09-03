@@ -2,3 +2,8 @@
 __pycache__/
 *.pyc
 trade_log.csv
+runtime.log
+build/
+dist/
+private_key.pem
+license.key
