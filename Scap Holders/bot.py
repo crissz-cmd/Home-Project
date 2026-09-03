@@ -17,7 +17,7 @@ import indicators
 import strategy
 import risk_manager as risk
 
-LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "trade_log.csv")
+LOG_FILE = os.getenv("SCAP_LOG_FILE", os.path.join(os.path.dirname(os.path.abspath(__file__)), "trade_log.csv"))
 STOP_EVENT = threading.Event()
 
 def request_stop():
