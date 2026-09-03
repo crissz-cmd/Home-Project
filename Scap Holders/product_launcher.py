@@ -2,11 +2,11 @@ import base64, contextlib, hashlib, json, os, socket, threading
 from datetime import datetime, timezone
 from pathlib import Path
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import filedialog, messagebox, ttk
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from license_public_key import PUBLIC_KEY_B64
 PRODUCT="Scap Holders"
-VERSION="1.0.0"
+VERSION="1.1.0"
 def data_dir():
     root=os.getenv("APPDATA") or str(Path.home()); p=Path(root)/"ScapHolders"; p.mkdir(parents=True,exist_ok=True); return p
 def machine_id():
@@ -38,7 +38,7 @@ class App(tk.Tk):
         super().__init__(); self.title(f"{PRODUCT} {VERSION}"); self.geometry("760x610"); self.resizable(False,False); self.bot_module=None; self.bot_thread=None; self.log_offset=0; self._build(load_settings()); self.after(500,self._poll_log); self._refresh_license()
     def _build(self,s):
         root=ttk.Frame(self,padding=18); root.pack(fill="both",expand=True); ttk.Label(root,text=PRODUCT,font=("Segoe UI",20,"bold")).pack(anchor="w"); ttk.Label(root,text="Automated Gold Scalping • MetaTrader 5",font=("Segoe UI",10)).pack(anchor="w",pady=(0,12))
-        box=ttk.LabelFrame(root,text="License",padding=10); box.pack(fill="x"); self.license_label=ttk.Label(box); self.license_label.pack(anchor="w"); ttk.Button(box,text="Copy Machine ID",command=self.copy_machine_id).pack(anchor="e",pady=(6,0))
+        box=ttk.LabelFrame(root,text="License",padding=10); box.pack(fill="x"); self.license_label=ttk.Label(box); self.license_label.pack(anchor="w"); license_actions=ttk.Frame(box); license_actions.pack(anchor="e",pady=(6,0)); ttk.Button(license_actions,text="Activate License",command=self.activate_license).pack(side="left"); ttk.Button(license_actions,text="Copy Machine ID",command=self.copy_machine_id).pack(side="left",padx=(8,0))
         form=ttk.LabelFrame(root,text="Trading Configuration",padding=10); form.pack(fill="x",pady=10); fields=[("symbol","Symbol"),("risk_percent","Risk / trade (%)"),("target_profit_usd","Profit target (USD)"),("max_open_positions","Max open positions"),("max_daily_loss_percent","Daily loss limit (%)"),("max_spread_points","Max spread (points)"),("mt5_terminal_path","MT5 terminal path")]; self.vars={}
         for r,(k,label) in enumerate(fields): ttk.Label(form,text=label).grid(row=r,column=0,sticky="w",pady=4); self.vars[k]=tk.StringVar(value=str(s[k])); ttk.Entry(form,textvariable=self.vars[k],width=48).grid(row=r,column=1,sticky="w",padx=12,pady=4)
         self.dry=tk.BooleanVar(value=bool(s["dry_run"])); ttk.Checkbutton(form,text="DRY RUN / Demo test (recommended)",variable=self.dry).grid(row=len(fields),column=1,sticky="w",pady=6)
@@ -49,6 +49,34 @@ class App(tk.Tk):
         self.log.config(state="normal"); self.log.insert("end",text+"\n"); self.log.see("end"); self.log.config(state="disabled")
     def _refresh_license(self):
         lic,err=verify_license(); self.license_label.config(text=f"ACTIVE • {lic['license_id']} • expires {lic['expires_at']}" if lic else f"INACTIVE • {err}")
+    def activate_license(self):
+        source=filedialog.askopenfilename(title="Select Scap Holders license.key",filetypes=[("Scap Holders license","license.key"),("License files","*.key"),("All files","*.*")])
+        if not source: return
+        destination=license_path(); backup=None
+        try:
+            candidate=Path(source).read_text(encoding="utf-8")
+            json.loads(candidate)
+            if destination.exists(): backup=destination.read_text(encoding="utf-8")
+            destination.write_text(candidate,encoding="utf-8")
+            lic,err=verify_license()
+            if not lic:
+                if backup is None: destination.unlink(missing_ok=True)
+                else: destination.write_text(backup,encoding="utf-8")
+                self._refresh_license()
+                messagebox.showerror(PRODUCT,f"License activation failed.\n\n{err}")
+                return
+            self._refresh_license()
+            messagebox.showinfo(PRODUCT,f"License activated successfully.\n\nLicense ID: {lic['license_id']}\nExpires: {lic['expires_at']}")
+        except Exception as exc:
+            if backup is not None:
+                try: destination.write_text(backup,encoding="utf-8")
+                except Exception: pass
+            else:
+                try: destination.unlink(missing_ok=True)
+                except Exception: pass
+            self._refresh_license()
+            messagebox.showerror(PRODUCT,f"Could not activate license.\n\n{exc}")
+
     def copy_machine_id(self):
         mid=machine_id(); self.clipboard_clear(); self.clipboard_append(mid); self.update(); messagebox.showinfo(PRODUCT,f"Machine ID copied:\n\n{mid}\n\nSend this ID to the seller for activation.")
     def save(self):
