@@ -17,10 +17,22 @@ MT5_PASSWORD = os.getenv("MT5_PASSWORD", "")
 MT5_SERVER = os.getenv("MT5_SERVER", "")
 MT5_TERMINAL_PATH = os.getenv("MT5_TERMINAL_PATH", "")
 
+def _env_str(name, default):
+    value = os.getenv(name)
+    return default if value is None or value == "" else value
+
+def _env_float(name, default):
+    try: return float(_env_str(name, default))
+    except (TypeError, ValueError): return default
+
+def _env_int(name, default):
+    try: return int(float(_env_str(name, default)))
+    except (TypeError, ValueError): return default
+
 # ============================================================
 # INSTRUMEN & TIMEFRAME
 # ============================================================
-SYMBOLS = ["GOLDi"]        # sesuaikan kalau broker pakai nama lain, mis. "XAUUSDm" / "GOLD" / "XAUUSD.m"
+SYMBOLS = [s.strip() for s in _env_str("SCAP_SYMBOLS", "GOLDi").split(",") if s.strip()]        # sesuaikan kalau broker pakai nama lain, mis. "XAUUSDm" / "GOLD" / "XAUUSD.m"
 TIMEFRAME = "M1"
 CANDLES_LOOKBACK = 300
 
@@ -39,7 +51,7 @@ MACD_SIGNAL = 4
 # ============================================================
 # STOP LOSS & TAKE PROFIT BERBASIS ATR
 # ============================================================
-RISK_PERCENT_PER_TRADE = 0.3
+RISK_PERCENT_PER_TRADE = _env_float("SCAP_RISK_PERCENT", 0.3)
 ATR_PERIOD = 7
 SL_ATR_MULTIPLIER = 1.0
 TP_ATR_MULTIPLIER = 1.5     # tetap dihitung untuk referensi, tapi TIDAK dikirim ke order
@@ -50,14 +62,14 @@ TP_ATR_MULTIPLIER = 1.5     # tetap dihitung untuk referensi, tapi TIDAK dikirim
 # harga sekecil apa pun sebelum order sampai ke server.
 MIN_STOP_BUFFER_POINTS = 2
 
-MAX_OPEN_POSITIONS = 5
-MAX_DAILY_LOSS_PERCENT = 2.0
+MAX_OPEN_POSITIONS = _env_int("SCAP_MAX_OPEN_POSITIONS", 5)
+MAX_DAILY_LOSS_PERCENT = _env_float("SCAP_MAX_DAILY_LOSS_PERCENT", 2.0)
 MAGIC_NUMBER = 234002       # beda dari preset sebelumnya biar posisi/log tidak tercampur
 
 # PENTING untuk XAUUSD: skala spread gold BEDA dari pasangan forex 5-digit.
 # Cek dulu spread khas XAUUSD di brokermu (Market Watch -> klik kanan XAUUSD
 # -> Spread) sebelum percaya angka default di bawah ini.
-MAX_SPREAD_POINTS = 30
+MAX_SPREAD_POINTS = _env_float("SCAP_MAX_SPREAD_POINTS", 30)
 
 TRADING_SESSION_START_UTC = 7
 TRADING_SESSION_END_UTC = 17
@@ -72,7 +84,7 @@ TRADING_SESSION_END_UTC = 17
 #         jadi False lagi begitu posisi hilang).
 # False = kembali ke TP price-based lama (pakai TP_ATR_MULTIPLIER).
 USE_NOMINAL_PROFIT_TARGET = True
-TARGET_PROFIT_USD = 2.0
+TARGET_PROFIT_USD = _env_float("SCAP_TARGET_PROFIT_USD", 2.0)
 
 # CATATAN AKURASI: position.profit dari MT5 adalah floating profit MURNI
 # dari pergerakan harga -- TIDAK termasuk komisi maupun swap. Kalau akunmu
@@ -92,5 +104,5 @@ STATUS_PRINT_EVERY_N_LOOPS = 20
 # ============================================================
 # SAKLAR KESELAMATAN — BACA INI
 # ============================================================
-DRY_RUN = False
-REQUIRE_LIVE_CONFIRMATION = True
+DRY_RUN = _env_str("SCAP_DRY_RUN", "0") == "1"
+REQUIRE_LIVE_CONFIRMATION = _env_str("SCAP_REQUIRE_LIVE_CONFIRMATION", "1") == "1"
