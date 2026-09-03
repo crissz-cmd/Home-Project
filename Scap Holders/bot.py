@@ -5,6 +5,7 @@ Hentikan kapan saja dengan Ctrl+C.
 """
 import csv
 import os
+import threading
 import time
 from datetime import datetime, timezone
 
@@ -16,7 +17,11 @@ import indicators
 import strategy
 import risk_manager as risk
 
-LOG_FILE = "trade_log.csv"
+LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "trade_log.csv")
+STOP_EVENT = threading.Event()
+
+def request_stop():
+    STOP_EVENT.set()
 
 
 def log_trade(symbol, signal, lot, price, sl, tp, retcode, comment):
@@ -162,7 +167,7 @@ def run():
     last_scan_time = 0.0
 
     try:
-        while True:
+        while not STOP_EVENT.is_set():
             now_ts = time.time()
             today = datetime.now(timezone.utc).date()
             if today != current_day:
@@ -199,7 +204,7 @@ def run():
                     for symbol in cfg.SYMBOLS:
                         process_symbol(symbol, verbose)
 
-            time.sleep(cfg.WATCHER_INTERVAL_SECONDS)
+            STOP_EVENT.wait(cfg.WATCHER_INTERVAL_SECONDS)
 
     except KeyboardInterrupt:
         print("\nDihentikan oleh pengguna (Ctrl+C).")
